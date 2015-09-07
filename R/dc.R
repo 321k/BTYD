@@ -118,27 +118,36 @@ dc.MergeTransactionsOnSameDate <- function(elog) {
 }
 
 dc.SplitUpElogForRepeatTrans <- function(elog) {
+    elog <- elog[order(elog$date),]
+    elog <- elog[order(elog$cust),]
+    
     dc.WriteLine("Started Creating Repeat Purchases")
     unique.custs <- unique(elog$cust)
+    
+    pb <- txtProgressBar(max=nrow(elog))
+    #ddply(elog, .(cust), summarize,  data=min(date))
+    #min_max <- sqldf('select cust, min(date) as first_transfer, max(date) as last_transfer from elog group by 1')
+    
     first.trans.indices <- rep(0, length(unique.custs))
     last.trans.indices <- rep(0, length(unique.custs))
     count <- 0
     for (cust in unique.custs) {
+        setTxtProgressBar(pb, value=count)
         count <- count + 1
         cust.indices <- which(elog$cust == cust)
         # Of this customer's transactions, find the index of the first one
-        first.trans.indices[count] <- min(cust.indices[which(elog$date[cust.indices] == 
-            min(elog$date[cust.indices]))])
+        first.trans.indices[count] <- min(cust.indices)
         
         # Of this customer's transactions, find the index of the last one
-        last.trans.indices[count] <- min(cust.indices[which(elog$date[cust.indices] == 
-            max(elog$date[cust.indices]))])
+        last.trans.indices[count] <- max(cust.indices)
     }
-    repeat.trans.elog <- elog[-first.trans.indices, ]
+    
+    
+   repeat.trans.elog <- elog[-first.trans.indices, ]
     
     first.trans.data <- elog[first.trans.indices, ]
     last.trans.data <- elog[last.trans.indices, ]
-    
+
     
     # [-1] is because we don't want to change the column name for custs
     names(first.trans.data)[-1] <- paste("first.", names(first.trans.data)[-1], sep = "")
