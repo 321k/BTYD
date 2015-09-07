@@ -125,8 +125,6 @@ dc.SplitUpElogForRepeatTrans <- function(elog) {
     dc.WriteLine("Started Creating Repeat Purchases")
     unique.custs <- unique(elog$cust)
     
-    pb <- txtProgressBar(max=nrow(elog))
-    
     x <- data.table(elog)
     x$i <- 1:nrow(elog)
     keycols <- c('cust', 'date')
