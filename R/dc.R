@@ -1,6 +1,7 @@
 ################################################################################ Functions for Manipulating Data
 
 library(Matrix)
+library(data.table)
 
 dc.ElogToCbsCbt <- function(elog, per = "week", T.cal = max(elog$date), T.tot = max(elog$date), 
     merge.same.date = TRUE, cohort.birth.per = T.cal, dissipate.factor = 1, statistic = "freq") {
@@ -125,28 +126,19 @@ dc.SplitUpElogForRepeatTrans <- function(elog) {
     unique.custs <- unique(elog$cust)
     
     pb <- txtProgressBar(max=nrow(elog))
-    #ddply(elog, .(cust), summarize,  data=min(date))
-    #min_max <- sqldf('select cust, min(date) as first_transfer, max(date) as last_transfer from elog group by 1')
     
-    first.trans.indices <- rep(0, length(unique.custs))
-    last.trans.indices <- rep(0, length(unique.custs))
-    count <- 0
-    for (cust in unique.custs) {
-        setTxtProgressBar(pb, value=count)
-        count <- count + 1
-        cust.indices <- which(elog$cust == cust)
-        # Of this customer's transactions, find the index of the first one
-        first.trans.indices[count] <- min(cust.indices)
-        
-        # Of this customer's transactions, find the index of the last one
-        last.trans.indices[count] <- max(cust.indices)
-    }
+    x <- data.table(elog)
+    x$i <- 1:nrow(elog)
+    keycols <- c('cust', 'date')
+    setkeyv(x, keycols)
+    first <- x[J(unique(cust)), mult='first']
+    first <- as.data.frame(first)
+    last <- x[J(unique(cust)), mult='last']
+    last <- as.data.frame(last)
     
-    
-   repeat.trans.elog <- elog[-first.trans.indices, ]
-    
-    first.trans.data <- elog[first.trans.indices, ]
-    last.trans.data <- elog[last.trans.indices, ]
+    repeat.trans.elog <- elog[-first$i, ]
+    first.trans.data <- as.data.frame(first)
+    last.trans.data <- as.data.frame(last)
 
     
     # [-1] is because we don't want to change the column name for custs
